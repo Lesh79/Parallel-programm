@@ -3,22 +3,22 @@ import java.util.concurrent.atomic.AtomicReference
 
 enum class Operations {PUSH, POP}
 
-class EliminationStack<T> {
+class EliminationStack<T> : Stack<T> {
     private val eliminationArray = arrayOfNulls<AtomicReference<ThreadInfo<T>>>(32)
     private val top = AtomicReference<Node<T>>(null)
     private val collision = arrayOfNulls<AtomicReference<Int>>(6)
 
 
-    suspend fun push(value: T){
+    override suspend fun push(value: T){
         StackOp(ThreadInfo(Operations.PUSH, Node(value)))
     }
 
-    suspend fun pop(): T? {
+    override suspend fun pop(): T? {
         val info = ThreadInfo<T>(Operations.POP, null)
         StackOp(info)
         return info.node?.value
     }
-    fun get(): T?{
+    override fun peek(): T?{
         return top.get().value
     }
     fun TryCollision(p: ThreadInfo<T>, q: ThreadInfo<T>): Boolean {

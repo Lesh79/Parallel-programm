@@ -1,9 +1,9 @@
 import java.util.concurrent.atomic.AtomicReference
 
-class TreiberStack<T> {
+class TreiberStack<T> : Stack<T>{
     private val head = AtomicReference<Node<T>?>(null)
 
-    fun push(value: T) {
+    override suspend fun push(value: T) {
         val newHead = Node(value)
         var currentHead: Node<T>?
         do {
@@ -12,7 +12,7 @@ class TreiberStack<T> {
         } while (!head.compareAndSet(currentHead, newHead))
     }
 
-    fun pop(): T? {
+    override suspend fun pop(): T? {
         var currentHead: Node<T>?
         var newHead: Node<T>?
         do {
@@ -23,7 +23,7 @@ class TreiberStack<T> {
         return currentHead?.value
     }
 
-    fun peek(): T? {
+    override fun peek(): T? {
         return head.get()?.value
     }
 

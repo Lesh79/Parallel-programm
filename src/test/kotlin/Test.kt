@@ -11,10 +11,10 @@ class EliminationStackTest {
         val stack = EliminationStack<Int>()
 
         stack.push(1)
-        assertEquals(1, stack.get())
+        assertEquals(1, stack.peek())
 
         stack.push(2)
-        assertEquals(2, stack.get())
+        assertEquals(3, stack.peek())
 
         assertEquals(2, stack.pop())
         assertEquals(1, stack.pop())

@@ -14,7 +14,7 @@ class EliminationTest {
     suspend fun pop() = stack.pop()
 
     @Operation
-    suspend fun get() = stack.get()
+    suspend fun peek() = stack.peek()
 
     @Test // JUnit
     fun stressTest() = StressOptions().check(this::class) // The magic button
