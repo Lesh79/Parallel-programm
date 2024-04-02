@@ -9,18 +9,26 @@ class EliminationStack<T> : Stack<T> {
     private val collision = arrayOfNulls<AtomicReference<Int>>(6)
 
 
-    override suspend fun push(value: T){
+    override suspend fun push(value: T) {
+
         StackOp(ThreadInfo(Operations.PUSH, Node(value)))
+
     }
 
     override suspend fun pop(): T? {
+
         val info = ThreadInfo<T>(Operations.POP, null)
         StackOp(info)
         return info.node?.value
+
     }
-    override fun peek(): T?{
-        return top.get().value
+
+    override fun peek(): T? {
+
+        return top.get()?.value
+
     }
+
     private fun TryCollision(p: ThreadInfo<T>, q: ThreadInfo<T>): Boolean {
         if (p.op == Operations.PUSH){
             val him = p.mypid
@@ -51,7 +59,7 @@ class EliminationStack<T> : Stack<T> {
     private suspend fun LesOp (p: ThreadInfo<T>){
         while (true){
             eliminationArray[p.mypid.toInt()] = AtomicReference(p)
-            val pos = collision.random()?.get()!!
+            val pos = collision.random()?.get() ?: continue
             var him = collision[pos]
             while (collision[pos]?.compareAndSet(him?.get(), p.mypid.toInt()) == false)
                 him = collision[pos]

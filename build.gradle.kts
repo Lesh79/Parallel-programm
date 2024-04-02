@@ -9,6 +9,18 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
 }
+tasks.withType<Test> {
+    jvmArgs(
+        "--add-opens",
+        "java.base/java.lang=ALL-UNNAMED",
+        "--add-opens",
+        "java.base/jdk.internal.misc=ALL-UNNAMED",
+        "--add-exports",
+        "java.base/jdk.internal.util=ALL-UNNAMED",
+        "--add-exports",
+        "java.base/sun.security.action=ALL-UNNAMED"
+    )
+}
 
 dependencies {
     testImplementation(kotlin("test"))
