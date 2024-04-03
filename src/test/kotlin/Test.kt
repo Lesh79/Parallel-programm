@@ -1,5 +1,7 @@
+
 import kotlinx.coroutines.*
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertEquals
@@ -7,95 +9,119 @@ import kotlin.test.assertNull
 
 class EliminationStackTest {
 
-    @Test
-    fun testPushAndPop() = runBlocking {
-        val stack = EliminationStack<Int>()
 
-        stack.push(1)
-        assertEquals(1, stack.peek())
+    @ParameterizedTest
+    @ValueSource(strings = ["TreiberStack", "EliminationStack"])
+    fun testPushAndPop(name: String) {
+        val stack = when (name) {
+            "TreiberStack" -> TreiberStack<Int>()
+            "EliminationStack" -> EliminationStack<Int>()
+            else -> throw IllegalArgumentException("Unknown stack type: $name")
+        }
 
-        stack.push(2)
-        assertEquals(2, stack.peek())
+        val executionTime = measureTimeMillis{
+            runBlocking {
+                stack.push(1)
+                assertEquals(1, stack.peek())
 
-        assertEquals(2, stack.pop())
-        assertEquals(1, stack.pop())
-        assertEquals(null, stack.pop())
+                stack.push(2)
+                assertEquals(2, stack.peek())
+
+                assertEquals(2, stack.pop())
+                assertEquals(1, stack.pop())
+                assertEquals(null, stack.pop())
+
+            }
+        }
+        println("Execution time TEST-1 of $name: $executionTime milliseconds")
+
     }
 
-    @Test
-    fun testCorrectPPP() = runBlocking {
-        val stack = EliminationStack<Int>()
-        val iterations = 1000
-        val counter = AtomicInteger(0)
 
+    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
+    @ParameterizedTest
+    @ValueSource(strings = ["TreiberStack", "EliminationStack"])
+    fun correctnessTest(name: String) {
+        val threads = 2
+        val iterations = 1_000
+        val stack = when (name) {
+            "TreiberStack" -> TreiberStack<Int>()
+            "EliminationStack" -> EliminationStack<Int>()
+            else -> throw IllegalArgumentException("Unknown stack type: $name")
+        }
+
+        val successfulPops = AtomicInteger(0)
+        val valuesChecked = Array(iterations * threads) { false }
+        val tasks = mutableListOf<Job>()
         val executionTime = measureTimeMillis {
-            val deferred = (1..iterations).map {
-                async {
-                    stack.push(it)
-                    delay(100)
-                    val value = stack.pop()
-                    if (value != null) {
-                        counter.incrementAndGet()
+            runBlocking {
+                repeat(threads) { curThread ->
+                    tasks.add(launch(newSingleThreadContext(curThread.toString())) {
+                        repeat(iterations) {
+                            stack.push(it * threads + curThread)
+                        }
+                    })
+                    tasks.add(launch(newSingleThreadContext((curThread + threads).toString())) {
+                        repeat(iterations) {
+                            stack.pop()?.let { pos ->
+                                assert(!valuesChecked[pos])
+                                valuesChecked[pos] = true
+                                successfulPops.getAndIncrement()
+                            }
+                        }
+                    })
+                }
+                tasks.joinAll()
+                while (successfulPops.get() < iterations * threads) {
+                    stack.pop()?.let { pos ->
+                        assert(!valuesChecked[pos])
+                        valuesChecked[pos] = true
+                        successfulPops.getAndIncrement()
                     }
                 }
+                assertEquals(null, stack.pop())
+                for (valueChecked in valuesChecked) {
+                    assert(valueChecked)
+                }
             }
-            deferred.forEach { it.await() }
         }
 
-        assert(counter.get() == 1000)
-        println("Execution time of test Correct PPP: $executionTime milliseconds")
+        println("Execution time of $name: $executionTime milliseconds")
     }
 
-    @Test
-    fun testConcurrentPushAndPop() = runBlocking {
-        val stack = EliminationStack<Int>()
-        val numRepeats = 100
-        val numOperations = 1_000_000
 
-        val executionTime = measureTimeMillis {
-            repeat(numRepeats) {
-                val job1 = launch {
-                    repeat(numOperations) { stack.push(it) }
-                }
-                val job2 = launch {
-                    repeat(numOperations) { stack.pop() }
-                }
-                val job3 = launch {
-                    repeat(numOperations) { stack.peek() }
-                }
-
-                listOf(job1, job2, job3).joinAll()
-            }
+    @ParameterizedTest
+    @ValueSource(strings = ["TreiberStack", "EliminationStack"])
+    fun testConcurrentPushAndPop(name: String) {
+        val stack = when (name) {
+            "TreiberStack" -> TreiberStack<Int>()
+            "EliminationStack" -> EliminationStack<Int>()
+            else -> throw IllegalArgumentException("Unknown stack type: $name")
         }
 
-        println("Execution time of test Concurrent Push And Pop: $executionTime milliseconds")
-        assertNull(stack.pop())
-        assertNull(stack.peek())
-    }
-    @Test
-    fun testConcurrentPushAndPopTreiber() = runBlocking {
-        val stack = TreiberStack<Int>()
-        val numRepeats = 100
-        val numOperations = 1_000_000
+        runBlocking {
+            val threads = 100
+            val iterations = 1_000_000
 
-        val executionTime = measureTimeMillis {
-            repeat(numRepeats) {
-                val job1 = launch {
-                    repeat(numOperations) { stack.push(it) }
-                }
-                val job2 = launch {
-                    repeat(numOperations) { stack.pop() }
-                }
-                val job3 = launch {
-                    repeat(numOperations) { stack.peek() }
-                }
+            val executionTime = measureTimeMillis {
+                repeat(threads) {
+                    val job1 = launch {
+                        repeat(iterations) { stack.push(it) }
+                    }
+                    val job2 = launch {
+                        repeat(iterations) { stack.pop() }
+                    }
+                    val job3 = launch {
+                        repeat(iterations) { stack.peek() }
+                    }
 
-                listOf(job1, job2, job3).joinAll()
+                    listOf(job1, job2, job3).joinAll()
+                }
             }
-        }
 
-        println("Execution time of Treiber: $executionTime milliseconds")
-        assertNull(stack.pop())
-        assertNull(stack.peek())
+            println("Execution time TEST-3 of $name: $executionTime milliseconds")
+            assertNull(stack.pop())
+            assertNull(stack.peek())
+        }
     }
 }

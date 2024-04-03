@@ -3,6 +3,8 @@ plugins {
     application
 }
 
+
+
 group = "org.example"
 version = "1.0-SNAPSHOT"
 
@@ -26,14 +28,22 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1-Beta")
     testImplementation("org.jetbrains.kotlinx:lincheck:2.28.1")
+    testImplementation(platform("org.junit:junit-bom:5.9.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+
+
 }
+
 
 tasks.test {
     useJUnitPlatform()
 }
 
+
+
 kotlin {
-    jvmToolchain(19)
+    jvmToolchain(17)
 }
 
 application {

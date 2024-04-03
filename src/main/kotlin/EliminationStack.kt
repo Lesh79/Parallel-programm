@@ -1,12 +1,11 @@
-import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicReference
 
 enum class Operations {PUSH, POP}
 
 class EliminationStack<T> : Stack<T> {
-    private val eliminationArray = arrayOfNulls<AtomicReference<ThreadInfo<T>>>(1000)
+    private val eliminationArray = arrayOfNulls<AtomicReference<ThreadInfo<T>>?>(1000)
     private val top = AtomicReference<Node<T>>(null)
-    private val collision = arrayOfNulls<AtomicReference<Int>>(6)
+    private val collision = Array<AtomicReference<Int>>(6) {AtomicReference(null)}
 
 
     override suspend fun push(value: T) {
@@ -30,51 +29,48 @@ class EliminationStack<T> : Stack<T> {
     }
 
     private fun TryCollision(p: ThreadInfo<T>, q: ThreadInfo<T>): Boolean {
+        val him = p.mypid
         if (p.op == Operations.PUSH){
-            val him = p.mypid
-            return eliminationArray[him.toInt()]?.compareAndSet(q, p) == true
+            return eliminationArray[him]?.compareAndSet(q, p) == true
         }
         if (p.op == Operations.POP){
-            val him = p.mypid
-            if (eliminationArray[him.toInt()]?.compareAndSet(q, null) == true){
+            if (eliminationArray[him]?.compareAndSet(q, null) == true){
                 p.node = q.node
-                eliminationArray[him.toInt()] = null
+                eliminationArray[p.mypid] = null
                 return true
             }
         }
-         return false
+        return false
     }
     private fun FinishCollision(p: ThreadInfo<T>){
         if (p.op == Operations.POP){
-            p.node = eliminationArray[p.mypid.toInt()]?.get()?.node
-            eliminationArray[p.mypid.toInt()] = null
+            p.node = eliminationArray[p.mypid]?.get()?.node
+            eliminationArray[p.mypid]?.set(null)
         }
     }
 
-    private suspend fun StackOp(p: ThreadInfo<T>){
+    private fun StackOp(p: ThreadInfo<T>){
         if (!TryPerformStackOp(p))
             LesOp(p)
         return
     }
-    private suspend fun LesOp (p: ThreadInfo<T>){
+    private fun LesOp (p: ThreadInfo<T>){
         while (true){
-            eliminationArray[p.mypid.toInt()] = AtomicReference(p)
-            val pos = collision.random()?.get() ?: continue
-            var him = collision[pos]
-            while (collision[pos]?.compareAndSet(him?.get(), p.mypid.toInt()) == false)
-                him = collision[pos]
+            eliminationArray[p.mypid] = AtomicReference(p)
+            val pos = java.util.Random().nextInt(collision.size)
+            var him = collision[pos].get()
+            while (!collision[pos].compareAndSet(him, p.mypid))
+                him = collision[pos].get()
             if (him != null){
-                val q = eliminationArray[him.get()]?.get()
-                if (q != null && q.mypid.toInt() == him.get() && q.op != p.op){
-                    if (eliminationArray[p.mypid.toInt()]?.compareAndSet(p, null) == true){
+                val q = eliminationArray[him]?.get()
+                if (q != null && q.mypid == him && q.op != p.op){
+                    if (eliminationArray[p.mypid]?.compareAndSet(p, null) == true){
                         if (TryCollision(p,q))
                             return
-                        else {
-                            if (TryPerformStackOp(p)){
-                                return
-                            }
-                            continue
+                        if (TryPerformStackOp(p)){
+                            return
                         }
+                        continue
                     }
                     else{
                         FinishCollision(p)
@@ -82,8 +78,7 @@ class EliminationStack<T> : Stack<T> {
                     }
                 }
             }
-            delay(p.spin)
-            if (eliminationArray[p.mypid.toInt()]?.compareAndSet(p, null) == false){
+            if (eliminationArray[p.mypid]?.compareAndSet(p, null) == false){
                 FinishCollision(p)
                 return
             }
@@ -95,6 +90,9 @@ class EliminationStack<T> : Stack<T> {
     private fun TryPerformStackOp(p: ThreadInfo<T>): Boolean {
         val pHead : Node<T>?
         val pNext : Node<T>?
+
+        if (p.mypid >= 1000)
+            throw IllegalArgumentException("Thread cannot be placed to array of size ")
 
         if (p.op == Operations.PUSH){
             pHead = this.top.get()
@@ -112,6 +110,7 @@ class EliminationStack<T> : Stack<T> {
                 p.node = pHead
                 return true
             }
+
         }
         p.node = null
         return false

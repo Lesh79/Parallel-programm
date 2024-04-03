@@ -3,6 +3,5 @@ class Node<T>(var value: T) {
 }
 
 class ThreadInfo<T>( var op: Operations, var node: Node<T>?){
-    var mypid :Long = Thread.currentThread().id
-    val spin = 1000L
+    var mypid  = Thread.currentThread().id.toInt()
 }
