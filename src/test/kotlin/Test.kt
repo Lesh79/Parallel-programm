@@ -1,4 +1,3 @@
-
 import kotlinx.coroutines.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -13,36 +12,34 @@ class EliminationStackTest {
     @ParameterizedTest
     @ValueSource(strings = ["TreiberStack", "EliminationStack"])
     fun testPushAndPop(name: String) {
+
         val stack = when (name) {
             "TreiberStack" -> TreiberStack<Int>()
             "EliminationStack" -> EliminationStack<Int>()
             else -> throw IllegalArgumentException("Unknown stack type: $name")
         }
 
-        val executionTime = measureTimeMillis{
-            runBlocking {
-                stack.push(1)
-                assertEquals(1, stack.peek())
+        runBlocking {
+            stack.push(1)
+            assertEquals(1, stack.peek())
 
-                stack.push(2)
-                assertEquals(2, stack.peek())
+            stack.push(2)
+            assertEquals(2, stack.peek())
 
-                assertEquals(2, stack.pop())
-                assertEquals(1, stack.pop())
-                assertEquals(null, stack.pop())
-
-            }
+            assertEquals(2, stack.pop())
+            assertEquals(1, stack.pop())
+            assertEquals(null, stack.pop())
         }
-        println("Execution time TEST-1 of $name: $executionTime milliseconds")
 
     }
+
 
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     @ParameterizedTest
     @ValueSource(strings = ["TreiberStack", "EliminationStack"])
     fun correctnessTest(name: String) {
-        val threads = 2
+        val threads = 10
         val iterations = 1_000
         val stack = when (name) {
             "TreiberStack" -> TreiberStack<Int>()
@@ -86,7 +83,7 @@ class EliminationStackTest {
             }
         }
 
-        println("Execution time of $name: $executionTime milliseconds")
+        println("Execution time TEST-1 of $name: $executionTime milliseconds")
     }
 
 
@@ -100,8 +97,8 @@ class EliminationStackTest {
         }
 
         runBlocking {
-            val threads = 100
-            val iterations = 1_000_000
+            val threads = 1000
+            val iterations = 100_000
 
             val executionTime = measureTimeMillis {
                 repeat(threads) {
@@ -119,7 +116,7 @@ class EliminationStackTest {
                 }
             }
 
-            println("Execution time TEST-3 of $name: $executionTime milliseconds")
+            println("Execution time TEST-2 of $name: $executionTime milliseconds")
             assertNull(stack.pop())
             assertNull(stack.peek())
         }
