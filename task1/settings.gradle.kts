@@ -5,5 +5,5 @@ pluginManagement {
     }
     
 }
-rootProject.name = "parallel"
+rootProject.name = "task1"
 
