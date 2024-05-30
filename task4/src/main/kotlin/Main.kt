@@ -2,10 +2,10 @@
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import trees.Optimistic
+import trees.Thin
 
 fun main() = runBlocking {
-    val tree = Optimistic<Int>()
+    val tree = Thin<Int>()
     coroutineScope {
         launch {
             tree.insert(5)

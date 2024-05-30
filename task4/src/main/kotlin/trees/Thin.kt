@@ -11,32 +11,20 @@ class Thin<T : Comparable<T>> : BinaryTree<T>() {
     data class NodeWithParent<T : Comparable<T>>(val node: Node<T>?, val parent: Node<T>?)
 
     override suspend fun insert(value: T) {
-        treeMutex.withLock {
-            if (root == null) {
-                root = Node(value)
-            } else {
-                insertRecursive(root, value)
-            }
-        }
-    }
-
-    private suspend fun insertRecursive(node: Node<T>?, value: T) {
+        val (node, parent) = findNodeAndParent(value)
         if (node == null) {
-            return
-        }
-        val nodeMutex = node.mutex
-        nodeMutex.withLock {
-            if (value < node.value) {
-                if (node.left == null) {
-                    node.left = Node(value)
-                } else {
-                    insertRecursive(node.left, value)
+            val newNode = Node(value)
+            if (parent == null) {
+                treeMutex.withLock {
+                    if (root == null) {
+                        root = newNode
+                    }
                 }
             } else {
-                if (node.right == null) {
-                    node.right = Node(value)
+                if (value < parent.value) {
+                    parent.left = newNode
                 } else {
-                    insertRecursive(node.right, value)
+                    parent.right = newNode
                 }
             }
         }
